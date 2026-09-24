@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BAGANTARA</title>
+    
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#02040a">
+    <link rel="apple-touch-icon" href="./assets/icon-192.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="./css/theme.css">
+    <link rel="stylesheet" href="./css/map.css">
+</head>
+<body>
+    
+    <div id="app-container" class="app-container">
+        
+        <!-- HEADER UTAMA (SIMETRIS ABSOLUT) -->
+        <header class="top-header glass-panel" id="mainHeader">
+            <!-- Zona Kiri (Tombol Kembali & Status) -->
+            <div class="header-left">
+                <button id="btnGlobalBack" class="btn-global-back"><i class="fa-solid fa-arrow-left"></i></button>
+                <div class="status-indicator">
+                    <span class="dot pulse-green"></span>
+                    <span class="status-text">ONLINE</span>
+                </div>
+            </div>
+            
+            <!-- Zona Tengah (Logo & Identitas) -->
+            <div class="brand-area">
+                <img src="./assets/logo-3d.png" alt="Logo" class="brand-img" id="headerLogo" onerror="this.src='./assets/icon-192.png'">
+                <div class="brand-text" id="headerTitle">
+                    <span class="title">BAGANTARA</span>
+                    <span class="subtitle">Sistem Eksekutif</span>
+                </div>
+            </div>
+            
+            <!-- Zona Kanan (Kendali PWA & Layar Penuh) -->
+            <div class="header-controls">
+                <button id="btnInstallPWA" class="btn-3d-pulse" style="display: none; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; border-color: var(--neon-gold); color: var(--neon-gold); padding: 6px 10px;" aria-label="Install App">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+                <button id="btnFullscreen" class="btn-3d-pulse" aria-label="Toggle Fullscreen">
+                    <i class="fa-solid fa-expand"></i><span>MAX</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD (PILIHAN LAYANAN) -->
+        <section id="view-dashboard" class="spa-view active-view" style="padding-top: 85px;">
+            <div class="service-selection-area" style="padding: 0 15px;">
+                <h2 class="font-tech text-main text-center mb-4" style="font-size: 1rem; letter-spacing: 1px;">PILIH PROTOKOL PERJALANAN</h2>
+                <div class="service-grid" id="serviceGrid">
+                    <button class="service-card" data-service="RIDE">
+                        <i class="fa-solid fa-motorcycle text-gold" style="font-size: 2.5rem;"></i>
+                        <span class="font-tech mt-2">RIDE</span>
+                    </button>
+                    <button class="service-card" data-service="CAR">
+                        <i class="fa-solid fa-car-side text-gold" style="font-size: 2.5rem;"></i>
+                        <span class="font-tech mt-2">CAR</span>
+                    </button>
+                    <button class="service-card" data-service="EXPRESS">
+                        <i class="fa-solid fa-cube text-gold" style="font-size: 2.5rem;"></i>
+                        <span class="font-tech mt-2">EXPRESS</span>
+                    </button>
+                    <button class="service-card" data-service="JASTIP">
+                        <i class="fa-solid fa-bag-shopping text-gold" style="font-size: 2.5rem;"></i>
+                        <span class="font-tech mt-2">JASTIP</span>
+                    </button>
+                </div>
+                
+                <div class="vault-mini-container mt-4 text-center">
+                    <input type="file" id="fileBgnUpload" accept=".bgn" style="display: none;">
+                    <button id="btnTriggerFile" class="btn-icon" style="font-size: 0.75rem; border: 1px solid rgba(212, 175, 55, 0.4); color: var(--neon-gold); padding: 8px 16px; border-radius: 20px;">
+                        <i class="fa-solid fa-folder-open"></i> MUAT DATA TERSIMPAN (.BGN)
+                    </button>
+                </div>
+            </div>
+
+            <div class="promo-area mt-4 text-center" id="promoContainer" style="padding-bottom: 100px;">
+                <span class="badge-network">
+                    <span class="dot pulse-green" style="width: 6px; height: 6px; display: inline-block;"></span> Transparansi Penuh Tanpa Potongan Komisi
+                </span>
+            </div>
+        </section>
+
+        <!-- LAYAR PENCARIAN (INLINE GRID & TWO-STEP EXPANSION) -->
+        <section id="view-search-route" class="spa-view hidden-view compact-mode" style="padding-top: 85px; background: transparent; height: 100vh; display: flex; flex-direction: column;">
+            
+            <div class="search-expansion-card" id="searchExpansionCard">
+                <h3 class="font-tech text-main text-lg mb-3 hidden-compact" id="searchCardTitle" style="margin-left: 5px;">Tentukan Rute Perjalanan</h3>
+
+                <!-- Peta Mini Ringkas -->
+                <div id="mini-map-container" class="mini-map-box"></div>
+                
+                <div class="route-inputs-container" id="routeInputsArea">
+                    <!-- Baris Lokasi Penjemputan -->
+                    <div class="route-row-inline hidden-compact">
+                        <div class="icon-point"><i class="fa-solid fa-circle-up text-neon"></i></div>
+                        <div class="input-area">
+                            <input type="text" id="inputSearchPickup" placeholder="Lokasi Anda sekarang" autocomplete="off">
+                        </div>
+                        <div style="width: 35px;"></div><div style="width: 35px;"></div> <!-- Placeholder -->
+                    </div>
+                    
+                    <div class="route-connector hidden-compact"></div>
+                    
+                    <!-- Baris Tujuan Utama (Bisa Ditambah) -->
+                    <div class="route-row-inline" id="rowDropoff1">
+                        <div class="icon-point"><i class="fa-solid fa-location-dot" style="color: #ef4444;"></i></div>
+                        <div class="input-area">
+                            <input type="text" id="inputSearchDropoff1" class="multi-target" data-index="1" placeholder="Cari lokasi tujuan..." autocomplete="off">
+                            <button class="btn-clear-input" onclick="document.getElementById('inputSearchDropoff1').value='';"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <button class="btn-grid-action" id="btnSelectViaMap" title="Pilih di Peta"><i class="fa-solid fa-map"></i></button>
+                        <button class="btn-grid-action hidden-compact" id="btnAddStop" title="Tambah Tujuan" style="color: var(--neon-gold);"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+
+                <!-- Wadah Dropdown Hasil Pencarian -->
+                <div class="search-results-wrapper hidden-compact">
+                    <div id="searchRouteResults" class="search-results-dropdown hidden"></div>
+                </div>
+            </div>
+
+            <!-- Tombol Lanjutkan (Sticky Bottom) - Muncul Saat Expanded -->
+            <div class="sticky-continue-btn hidden-compact hidden" id="stickyContinueArea">
+                <button id="btnProceedToPickup" class="btn-primary w-full" style="max-width: 400px; box-shadow: 0 -5px 20px rgba(0,0,0,0.8);">
+                    LANJUTKAN KE TITIK JEMPUT <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- LAYAR SISTEM PEMETAAN UTAMA -->
+        <section id="view-map" class="spa-view hidden-view">
+            <main class="map-area">
+                <div id="map-container"></div>
+                <button id="btnMyGPS" class="btn-float-gps"><i class="fa-solid fa-crosshairs"></i></button>
+            </main>
+
+            <div class="order-panel glass-panel">
+                <div class="selected-service-info font-tech text-gold text-xs mb-3 text-center border-b border-cyber pb-2">
+                    PROTOKOL AKTIF: <span id="labelLayananPeta" class="text-main font-bold">...</span>
+                </div>
+
+                <!-- SMART BOTTOM-SHEET INLINE (RESTRUKTURISASI ENTERPRISE) -->
+                <div id="inlineAddressPanel" class="mb-3 p-3 rounded-xl" style="background: var(--void-black); border: 1px solid var(--border-cyber); display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Baris Lokasi Utama -->
+                    <div style="display: flex; gap: 12px; align-items: center; width: 100%;">
+                        <i id="pinTypeIcon" class="fa-solid fa-location-dot" style="font-size: 1.2rem; color: #3b82f6; flex-shrink: 0;"></i>
+                        <div id="liveAddressTitle" class="text-sm font-bold text-main" style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Memindai Sinyal GPS...</div>
+                    </div>
+                    
+                    <!-- Baris Catatan (Lebar Penuh) -->
+                    <div id="notesContainer" class="hidden" style="width: 100%;">
+                        <input type="text" id="inputInlineNotes" placeholder="Ketik patokan penjemputan (Contoh: Pagar hitam, Baju merah)..." autocomplete="off" style="width: 100%; background: var(--card-bg-2); border: 1px solid var(--border-cyber); color: var(--text-main); padding: 12px 15px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 0.75rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); outline: none;">
+                    </div>
+                </div>
+
+                <div id="wizardInstruction" class="text-center font-tech text-neon text-sm mb-2 font-bold pulse-text">
+                    1. KONFIRMASI TITIK TUJUAN
+                </div>
+
+                <div class="action-area mt-2" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="price-display hidden" id="priceArea">
+                        <span class="price-label">ESTIMASI TARIF</span>
+                        <span class="price-value" id="priceValue">Rp 0</span>
+                    </div>
+                    <button id="btnWizardNext" class="btn-primary w-full">
+                        <i class="fa-solid fa-location-crosshairs"></i> KUNCI KOORDINAT
+                    </button>
+                    <button id="btnSaveVaultFinal" class="btn-primary w-full hidden" style="font-size: 0.75rem; background: transparent; color: var(--neon-gold); border-color: var(--neon-gold);">
+                        <i class="fa-solid fa-download"></i> SIMPAN RUTE KE PERANGKAT (.BGN)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- LAYAR DAFTAR PENGEMUDI TERDEKAT -->
+        <section id="view-drivers" class="spa-view hidden-view" style="background: var(--void-black); overflow-y: auto; padding-top: 85px;">
+            <div style="padding: 15px;">
+                <h3 class="font-tech text-gold text-center mb-4" style="font-size: 1rem; border-bottom: 1px solid var(--border-cyber); padding-bottom: 10px;">PENGEMUDI DALAM JANGKAUAN</h3>
+                <div id="driverListContainer" style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 100px;">
+                    <!-- Dirender oleh Engine -->
+                </div>
+            </div>
+        </section>
+
+        <!-- PUSAT BANTUAN -->
+        <div id="help-overlay" class="captcha-overlay hidden">
+            <div class="glass-panel" style="padding: 25px; border-radius: 16px; width: 90%; max-width: 400px; max-height: 80vh; overflow-y: auto;">
+                <h3 class="font-tech text-neon text-center mb-4"><i class="fa-solid fa-circle-info"></i> PUSAT INFORMASI</h3>
+                <div id="helpContent">
+                    <p>Selamat datang di platform transportasi otonom. Sistem ini memfasilitasi komunikasi secara *Peer-to-Peer*.</p>
+                    <p>Kami <b>TIDAK memungut biaya layanan maupun komisi sepeser pun</b> dari Penumpang ataupun Pengemudi.</p>
+                    <p>Seluruh kesepakatan harga dan instruksi navigasi langsung diarahkan ke sistem WhatsApp Pengemudi yang Anda pilih secara terenkripsi.</p>
+                </div>
+                <button id="btnCloseHelp" class="btn-primary w-full mt-4" style="font-size: 0.75rem;">TUTUP PANEL</button>
+            </div>
+        </div>
+
+        <!-- FORM IDENTITAS PENUMPANG -->
+        <div id="client-form-overlay" class="captcha-overlay hidden">
+            <div class="glass-panel" style="padding: 25px; border-radius: 16px; width: 90%; max-width: 350px;">
+                <h3 class="font-tech text-gold text-center mb-4"><i class="fa-solid fa-shield-halved"></i> KONFIRMASI IDENTITAS</h3>
+                <div class="location-inputs" style="margin-bottom: 20px;">
+                    <div class="input-group mb-2">
+                        <i class="fa-solid fa-user text-muted"></i>
+                        <input type="text" id="inputClientName" placeholder="Nama Lengkap Penumpang..." required>
+                    </div>
+                    <div class="input-line" style="height: 1px; width: 100%; margin: 10px 0;"></div>
+                    <div class="input-group">
+                        <i class="fa-brands fa-whatsapp text-neon"></i>
+                        <input type="tel" id="inputClientWA" placeholder="Nomor WhatsApp..." required>
+                    </div>
+                </div>
+                <button id="btnSubmitClient" class="btn-primary w-full" style="font-size: 0.75rem;">OTORISASI PERJALANAN</button>
+                <button id="btnCancelClient" class="btn-icon w-full mt-2" style="font-size: 0.75rem;">Batal</button>
+            </div>
+        </div>
+
+        <!-- VERIFIKASI KEAMANAN (CAPTCHA) -->
+        <div id="captcha-overlay" class="captcha-overlay hidden">
+            <div class="captcha-box">
+                <div class="captcha-header font-tech text-main text-sm">Validasi Keamanan Transaksi</div>
+                <div class="captcha-body flex items-center gap-3">
+                    <input type="checkbox" id="fakeCaptchaCheck" class="captcha-check">
+                    <span class="text-muted text-xs">Otentikasi Pengguna Manusia</span>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/RecaptchaLogo.svg" alt="reCaptcha" style="height: 25px; margin-left: auto;">
+                </div>
+                <div id="captchaProcessing" class="captcha-processing hidden text-center mt-4">
+                    <i class="fa-solid fa-circle-notch fa-spin text-neon text-2xl mb-2"></i>
+                    <div class="font-tech text-main text-lg font-bold" id="countdownTimer">7</div>
+                    <div class="text-muted text-xs mt-1">Mengamankan Saluran & Menyusun Manifesto...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KANVAS FORENSIK (Tersembunyi) -->
+        <canvas id="kycCanvas" style="display: none;"></canvas>
+
+        <!-- PERINGATAN SISTEM (ALERT) -->
+        <div id="cyber-alert" class="captcha-overlay hidden" style="z-index: 10000;">
+            <div class="glass-panel text-center" style="padding: 25px; border-radius: 16px; width: 85%; max-width: 320px; border-left: 4px solid var(--neon-gold); box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                <i class="fa-solid fa-triangle-exclamation text-gold text-3xl mb-3"></i>
+                <h3 class="font-tech text-main text-sm font-bold mb-2">PEMBERITAHUAN SISTEM</h3>
+                <p id="cyber-alert-msg" class="text-muted text-xs mb-4" style="line-height: 1.6;"></p>
+                <button id="btn-close-alert" class="btn-primary w-full" style="font-size: 0.75rem;">SAYA MENGERTI</button>
+            </div>
+        </div>
+
+        <!-- OVERLAY GPS LOCKDOWN -->
+        <div id="gps-lockdown-overlay" class="captcha-overlay hidden" style="z-index: 10001; background: rgba(2,4,10,0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
+            <div class="glass-panel text-center" style="padding: 30px 20px; border-radius: 20px; width: 90%; max-width: 340px; border-color: #ef4444; box-shadow: 0 10px 50px rgba(239,68,68,0.15);">
+                <i class="fa-solid fa-satellite-dish mb-3" style="font-size: 3rem; color: #ef4444; filter: drop-shadow(0 0 10px rgba(239,68,68,0.5));"></i>
+                <h3 id="gps-title" class="font-tech text-main font-bold mb-2 text-lg">MENCARI SINYAL GPS...</h3>
+                <p id="gps-message" class="text-muted text-xs mb-4" style="line-height: 1.6;">Sistem membutuhkan akses pelacakan lokasi berpresisi tinggi untuk mengkalibrasi jarak secara akurat.</p>
+                
+                <button id="btn-retry-gps" class="btn-primary w-full mt-4" style="font-size: 0.75rem; background: var(--void-black); border-color: #ef4444; color: #ef4444; display: none;">
+                    <i class="fa-solid fa-rotate-right"></i> SAYA SUDAH IZINKAN, COBA LAGI
+                </button>
+            </div>
+        </div>
+
+        <!-- NAVIGASI BAWAH -->
+        <nav class="bottom-nav glass-panel" id="mainBottomNav">
+            <a href="#" class="nav-item active" id="navHome">
+                <i class="fa-solid fa-house"></i><span>Beranda</span>
+            </a>
+            <a href="#" class="nav-item" id="navActivity">
+                <i class="fa-solid fa-receipt"></i><span>Aktivitas</span>
+            </a>
+            <a href="#" class="nav-item" id="navHelp">
+                <i class="fa-solid fa-life-ring"></i><span>Bantuan</span>
+            </a>
+        </nav>
+    </div>
+    
+        <!-- SDK FIREBASE: Jaringan Radar Satelit -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script src="./js/app.js"></script>
+    <script src="./js/ui-engine.js"></script>
+    <script src="./js/location-search.js"></script>
+    <script src="./js/wizard-flow.js"></script>
+    <script src="./js/map.js"></script>
+    <script src="./js/address-vault.js"></script>
+    <script src="./js/sheets-engine.js"></script>
+    <script src="./js/canvas-engine.js"></script>
+    <script src="./js/kyc-checkout.js"></script>
+</body>
+</html>
